@@ -10,6 +10,8 @@ import TeacherForm from "./components/teachers/TeacherForm";
 import TeacherDetail from "./components/teachers/TeacherDetail";
 import TeacherAvailability from "./components/availability/TeacherAvailability";
 import TeacherAssignments from "./components/availability/TeacherAssignments";
+import AllAssignments from "./components/availability/AllAssignments";
+
 function App() {
   return (
     <BrowserRouter>
@@ -18,16 +20,21 @@ function App() {
         <main className="container py-4">
           <Routes>
             <Route path="/" element={<Navigate to="/teachers" />} />
+
+            {/* Teacher routes */}
             <Route path="/teachers" element={<TeacherList />} />
             <Route path="/teachers/add" element={<TeacherForm />} />
             <Route path="/teachers/edit/:id" element={<TeacherForm />} />
             <Route path="/teachers/:id" element={<TeacherDetail />} />
 
-            {/* Thêm routes mới */}
+            {/* Availability routes */}
             <Route
               path="/availability/teacher/:teacherId"
               element={<TeacherAvailability />}
             />
+
+            {/* Assignment routes */}
+            <Route path="/assignments" element={<AllAssignments />} />
             <Route
               path="/assignments/teacher/:teacherId"
               element={<TeacherAssignments />}

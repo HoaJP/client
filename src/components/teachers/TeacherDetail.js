@@ -88,16 +88,22 @@ function TeacherDetail() {
               Quay lại
             </Link>
             <Link
+              to={`/assignments/teacher/${teacher.id}`}
+              className="btn btn-info"
+            >
+              Lịch dạy
+            </Link>
+            <Link
               to={`/availability/teacher/${teacher.id}`}
               className="btn btn-secondary"
             >
               Lịch rảnh
             </Link>
             <Link
-              to={`/assignments/teacher/${teacher.id}`}
+              to={`/attendance/teacher/${teacher.id}`}
               className="btn btn-success"
             >
-              Lịch dạy
+              Chấm công
             </Link>
           </div>
         </div>
