@@ -105,6 +105,12 @@ function TeacherDetail() {
             >
               Chấm công
             </Link>
+            <Link
+              to={`/attendance/payroll/teacher/${teacher.id}`}
+              className="btn btn-secondary"
+            >
+              Tính lương
+            </Link>
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ function Header() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
         <Link className="navbar-brand" to="/">
-          Trung tâm Ngoại ngữ
+          <span class="badge fs-4 text-bg-warning">Mạnh Hòa Language</span>
         </Link>
         <button
           className="navbar-toggler"
@@ -20,23 +20,18 @@ function Header() {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav mr-auto">
             <li className="nav-item">
-              <Link className="nav-link" to="/">
+              <Link className="fs-3 mx-4 nav-link" to="/">
                 Trang chủ
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/teachers">
+              <Link className="fs-3 mx-4 nav-link" to="/teachers">
                 Giáo viên
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/assignments">
+              <Link className="fs-3 mx-4 nav-link" to="/assignments">
                 Lịch dạy
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/attendance">
-                Chấm công
               </Link>
             </li>
           </ul>

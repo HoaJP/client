@@ -61,6 +61,15 @@ const availabilityService = {
       throw error;
     }
   },
+  getAssignment: async (id) => {
+    try {
+      const response = await api.get(`/availability/assignments/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching assignment ${id}:`, error);
+      throw error;
+    }
+  },
 };
 
 export default availabilityService;
