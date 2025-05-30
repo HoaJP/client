@@ -91,25 +91,7 @@ function TeacherDetail() {
               to={`/assignments/teacher/${teacher.id}`}
               className="btn btn-info"
             >
-              Lịch dạy
-            </Link>
-            <Link
-              to={`/availability/teacher/${teacher.id}`}
-              className="btn btn-secondary"
-            >
-              Lịch rảnh
-            </Link>
-            <Link
-              to={`/attendance/teacher/${teacher.id}`}
-              className="btn btn-success"
-            >
-              Chấm công
-            </Link>
-            <Link
-              to={`/attendance/payroll/teacher/${teacher.id}`}
-              className="btn btn-secondary"
-            >
-              Tính lương
+              Đăng ký dạy
             </Link>
           </div>
         </div>

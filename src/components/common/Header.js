@@ -1,4 +1,3 @@
-// client/src/components/common/Header.js (cập nhật)
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -7,7 +6,7 @@ function Header() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
         <Link className="navbar-brand" to="/">
-          <span class="badge fs-4 text-bg-warning">Mạnh Hòa Language</span>
+          <span className="badge fs-4 text-bg-warning">Mạnh Hòa Language</span>
         </Link>
         <button
           className="navbar-toggler"
@@ -31,7 +30,7 @@ function Header() {
             </li>
             <li className="nav-item">
               <Link className="fs-3 mx-4 nav-link" to="/assignments">
-                Lịch dạy
+                Lịch đăng ký dạy
               </Link>
             </li>
           </ul>

@@ -1,39 +1,6 @@
 import api from "./api";
 
 const availabilityService = {
-  getTeacherAvailability: async (teacherId) => {
-    try {
-      const response = await api.get(`/availability/teacher/${teacherId}`);
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Error fetching availability for teacher ${teacherId}:`,
-        error
-      );
-      throw error;
-    }
-  },
-
-  addAvailability: async (availabilityData) => {
-    try {
-      const response = await api.post("/availability", availabilityData);
-      return response.data;
-    } catch (error) {
-      console.error("Error adding availability:", error);
-      throw error;
-    }
-  },
-
-  deleteAvailability: async (id) => {
-    try {
-      const response = await api.delete(`/availability/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting availability with id ${id}:`, error);
-      throw error;
-    }
-  },
-
   getTeacherAssignments: async (teacherId) => {
     try {
       const response = await api.get(
@@ -45,6 +12,49 @@ const availabilityService = {
         `Error fetching assignments for teacher ${teacherId}:`,
         error
       );
+      throw error;
+    }
+  },
+
+  getSubjects: async () => {
+    try {
+      const response = await api.get("/availability/subjects");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+      throw error;
+    }
+  },
+
+  getClassesBySubject: async (subject) => {
+    try {
+      const response = await api.get(`/availability/classes/${subject}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching classes for subject ${subject}:`, error);
+      throw error;
+    }
+  },
+
+  getRegisteredClassesBySubject: async (subject) => {
+    try {
+      const response = await api.get(`/availability/registered/${subject}`);
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Error fetching registered classes for subject ${subject}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
+  getClassDetails: async (id) => {
+    try {
+      const response = await api.get(`/availability/class/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching class details for id ${id}:`, error);
       throw error;
     }
   },
@@ -61,12 +71,13 @@ const availabilityService = {
       throw error;
     }
   },
-  getAssignment: async (id) => {
+
+  getAllAssignments: async () => {
     try {
-      const response = await api.get(`/availability/assignments/${id}`);
+      const response = await api.get("/availability/assignments");
       return response.data;
     } catch (error) {
-      console.error(`Error fetching assignment ${id}:`, error);
+      console.error("Error fetching all assignments:", error);
       throw error;
     }
   },

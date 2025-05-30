@@ -1,48 +1,45 @@
-// client/src/components/availability/AllAssignments.js
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import availabilityService from "../../services/availabilityService";
-import teacherService from "../../services/teacherService";
 
 function AllAssignments() {
   const [assignments, setAssignments] = useState([]);
-  const [teachers, setTeachers] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedTeacher, setSelectedTeacher] = useState("");
 
   useEffect(() => {
-    const fetchTeachers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await teacherService.getAllTeachers();
-        setTeachers(response.data);
+        const [subjectsResponse, assignmentsResponse] = await Promise.all([
+          availabilityService.getSubjects(),
+          availabilityService.getAllAssignments(),
+        ]);
+        setSubjects(subjectsResponse.data);
+        setAssignments(assignmentsResponse.data);
         setLoading(false);
       } catch (err) {
-        setError("Không thể tải danh sách giáo viên");
+        setError("Không thể tải dữ liệu");
         setLoading(false);
       }
     };
 
-    fetchTeachers();
+    fetchData();
   }, []);
 
-  const handleTeacherChange = async (e) => {
-    const teacherId = e.target.value;
-    setSelectedTeacher(teacherId);
-
-    if (teacherId) {
-      try {
-        const response = await availabilityService.getTeacherAssignments(
-          teacherId
-        );
-        setAssignments(response.data);
-      } catch (err) {
-        setError("Không thể tải lịch dạy của giáo viên");
-      }
-    } else {
-      setAssignments([]);
-    }
+  const handleSubjectChange = (e) => {
+    setSelectedSubject(e.target.value);
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  const filteredAssignments = selectedSubject
+    ? assignments.filter((assignment) => assignment.subject === selectedSubject)
+    : assignments;
 
   if (loading) {
     return (
@@ -59,102 +56,59 @@ function AllAssignments() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="card mt-4">
-        <div className="card-header">Xem lịch dạy theo giáo viên</div>
+        <div className="card-header">Danh sách lịch dạy</div>
         <div className="card-body">
-          <div className="row">
-            <div className="col-md-6">
-              <div className="mb-3">
-                <label htmlFor="teacher" className="form-label">
-                  Chọn giáo viên
-                </label>
-                <select
-                  className="form-select"
-                  id="teacher"
-                  value={selectedTeacher}
-                  onChange={handleTeacherChange}
-                >
-                  <option value="">-- Chọn giáo viên --</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.fullName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="col-md-6">
-              {selectedTeacher && (
-                <div className="d-flex justify-content-end align-items-end h-100">
-                  <Link
-                    to={`/assignments/teacher/${selectedTeacher}/add`}
-                    className="btn btn-primary"
-                  >
-                    Thêm lịch dạy mới
-                  </Link>
-                </div>
-              )}
-            </div>
+          <div className="mb-3">
+            <label htmlFor="subject" className="form-label">
+              Lọc theo môn học
+            </label>
+            <select
+              className="form-select"
+              id="subject"
+              value={selectedSubject}
+              onChange={handleSubjectChange}
+            >
+              <option value="">Tất cả môn học</option>
+              {subjects.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {selectedTeacher && (
-            <div className="mt-4">
-              {assignments.length === 0 ? (
-                <div className="alert alert-info">
-                  Không có lịch dạy nào cho giáo viên này
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-striped">
-                    <thead>
-                      <tr>
-                        <th>Lớp</th>
-                        <th>Môn học</th>
-                        <th>Ngày</th>
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assignments.map((assignment) => (
-                        <tr key={assignment.id}>
-                          <td>{assignment.class_name}</td>
-                          <td>{assignment.subject}</td>
-                          <td>
-                            {new Date(assignment.date).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </td>
-                          <td>
-                            {assignment.start_time} - {assignment.end_time}
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                assignment.status === "scheduled"
-                                  ? "bg-primary"
-                                  : "bg-success"
-                              }`}
-                            >
-                              {assignment.status === "scheduled"
-                                ? "Đã lên lịch"
-                                : "Đã hoàn thành"}
-                            </span>
-                          </td>
-                          <td>
-                            <Link
-                              to={`/attendance/mark/${assignment.id}`}
-                              className="btn btn-sm btn-success"
-                            >
-                              Chấm công
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {filteredAssignments.length === 0 ? (
+            <div className="alert alert-info">
+              Không có lịch dạy nào được đăng ký
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Môn học</th>
+                    <th>Lớp</th>
+                    <th>Ngày bắt đầu</th>
+                    <th>Ngày kết thúc</th>
+                    <th>Thời gian</th>
+                    <th>Giáo viên đăng ký</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAssignments.map((assignment) => (
+                    <tr key={assignment.class_id}>
+                      <td>{assignment.subject}</td>
+                      <td>{assignment.class_name}</td>
+                      <td>{formatDate(assignment.start_date)}</td>
+                      <td>{formatDate(assignment.end_date)}</td>
+                      <td>
+                        {assignment.start_time} - {assignment.end_time}
+                      </td>
+                      <td>{assignment.teachers.join(", ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

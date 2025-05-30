@@ -1,4 +1,3 @@
-// client/src/components/availability/TeacherAssignments.js
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import availabilityService from "../../services/availabilityService";
@@ -6,32 +5,35 @@ import teacherService from "../../services/teacherService";
 
 function TeacherAssignments() {
   const { teacherId } = useParams();
-  const [assignments, setAssignments] = useState([]);
   const [teacher, setTeacher] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [registeredClasses, setRegisteredClasses] = useState([]);
   const [newAssignment, setNewAssignment] = useState({
     teacher_id: teacherId,
-    class_name: "",
     subject: "",
-    date: "",
-    start_time: "08:00",
-    end_time: "10:00",
+    class_id: "",
   });
+  const [selectedClassDetails, setSelectedClassDetails] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [assignmentsResponse, teacherResponse] = await Promise.all([
-          availabilityService.getTeacherAssignments(teacherId),
-          teacherService.getTeacher(teacherId),
-        ]);
+        const [teacherResponse, subjectsResponse, registeredResponse] =
+          await Promise.all([
+            teacherService.getTeacher(teacherId),
+            availabilityService.getSubjects(),
+            availabilityService.getTeacherAssignments(teacherId),
+          ]);
 
-        setAssignments(assignmentsResponse.data);
         setTeacher(teacherResponse.data);
+        setSubjects(subjectsResponse.data);
+        setRegisteredClasses(registeredResponse.data);
         setLoading(false);
       } catch (err) {
-        setError("Không thể tải thông tin lịch dạy");
+        setError("Không thể tải thông tin");
         setLoading(false);
       }
     };
@@ -39,54 +41,98 @@ function TeacherAssignments() {
     fetchData();
   }, [teacherId]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleSubjectChange = async (e) => {
+    const subject = e.target.value;
     setNewAssignment({
       ...newAssignment,
-      [name]: value,
+      subject,
+      class_id: "",
     });
+    setSelectedClassDetails(null);
+    setClasses([]);
+    setRegisteredClasses([]);
+
+    if (subject) {
+      if (teacher.specialization !== subject) {
+        setError("Môn học không đúng với chuyên môn của bạn");
+        return;
+      } else {
+        setError(null);
+        try {
+          const [classResponse, registeredResponse] = await Promise.all([
+            availabilityService.getClassesBySubject(subject),
+            availabilityService.getTeacherAssignments(teacherId),
+          ]);
+          setClasses(classResponse.data);
+          setRegisteredClasses(registeredResponse.data);
+        } catch (err) {
+          setError("Không thể tải danh sách lớp học");
+        }
+      }
+    }
+  };
+
+  const handleClassChange = async (e) => {
+    const classId = e.target.value;
+    setNewAssignment({
+      ...newAssignment,
+      class_id: classId,
+    });
+
+    if (classId) {
+      try {
+        const response = await availabilityService.getClassDetails(classId);
+        setSelectedClassDetails(response.data);
+      } catch (err) {
+        setError("Không thể tải thông tin lớp học");
+      }
+    } else {
+      setSelectedClassDetails(null);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await availabilityService.createAssignment(
-        newAssignment
+      await availabilityService.createAssignment({
+        teacher_id: newAssignment.teacher_id,
+        class_id: newAssignment.class_id,
+      });
+      const registeredResponse =
+        await availabilityService.getTeacherAssignments(teacherId);
+      setRegisteredClasses(registeredResponse.data);
+      const classResponse = await availabilityService.getClassesBySubject(
+        newAssignment.subject
       );
-      setAssignments([...assignments, response.data]);
-
-      // Reset form
+      setClasses(classResponse.data);
       setNewAssignment({
         ...newAssignment,
-        class_name: "",
-        subject: "",
-        date: "",
-        start_time: "08:00",
-        end_time: "10:00",
+        class_id: "",
       });
+      setSelectedClassDetails(null);
+      setError(null);
     } catch (err) {
-      setError("Không thể đăng ký lịch dạy");
+      setError(err.response?.data?.error || "Không thể đăng ký lịch dạy");
     }
   };
 
-  // Format date YYYY-MM-DD to DD/MM/YYYY for display
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN");
   };
 
-  // Get current date in YYYY-MM-DD format for min date in input
-  const getCurrentDate = () => {
-    const date = new Date();
-    return date.toISOString().split("T")[0];
+  const isClassDisabled = (classId) => {
+    return registeredClasses.some((cls) => cls.class_id === parseInt(classId));
   };
 
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border"></div>
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Đang tải...</span>
+        </div>
       </div>
     );
   }
@@ -94,7 +140,9 @@ function TeacherAssignments() {
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Lịch dạy của giáo viên: {teacher?.fullName}</h2>
+        <h2>
+          Đăng ký dạy: {teacher?.fullName} ({teacher?.specialization})
+        </h2>
         <Link to={`/teachers/${teacherId}`} className="btn btn-secondary">
           Quay lại
         </Link>
@@ -103,92 +151,93 @@ function TeacherAssignments() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="row">
-        <div className="col-md-5">
+        <div className="col-md-6">
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Đăng ký lịch dạy mới</h3>
+              <h3 className="card-title">Đăng ký lớp học</h3>
             </div>
             <div className="card-body">
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                  <label htmlFor="class_name" className="form-label">
-                    Tên lớp
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="class_name"
-                    name="class_name"
-                    value={newAssignment.class_name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
                   <label htmlFor="subject" className="form-label">
                     Môn học
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="subject"
                     name="subject"
                     value={newAssignment.subject}
-                    onChange={handleInputChange}
+                    onChange={handleSubjectChange}
                     required
-                  />
+                  >
+                    <option value="">-- Chọn môn học --</option>
+                    {subjects.map((subject) => (
+                      <option key={subject} value={subject}>
+                        {subject}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="mb-3">
-                  <label htmlFor="date" className="form-label">
-                    Ngày dạy
+                  <label htmlFor="class_id" className="form-label">
+                    Lớp học
                   </label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    id="date"
-                    name="date"
-                    min={getCurrentDate()}
-                    value={newAssignment.date}
-                    onChange={handleInputChange}
+                  <select
+                    className="form-select"
+                    id="class_id"
+                    name="class_id"
+                    value={newAssignment.class_id}
+                    onChange={handleClassChange}
                     required
-                  />
+                    disabled={!newAssignment.subject || error}
+                  >
+                    <option value="">-- Chọn lớp học --</option>
+                    {classes.map((cls) => (
+                      <option
+                        key={cls.id}
+                        value={cls.id}
+                        disabled={isClassDisabled(cls.id)}
+                      >
+                        {cls.class_name}{" "}
+                        {isClassDisabled(cls.id) ? "(Đã đăng ký bởi bạn)" : ""}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="start_time" className="form-label">
-                      Thời gian bắt đầu
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control"
-                      id="start_time"
-                      name="start_time"
-                      value={newAssignment.start_time}
-                      onChange={handleInputChange}
-                      required
-                    />
+                {selectedClassDetails && (
+                  <div className="mb-3">
+                    <h5>
+                      <strong>Thông tin lớp học</strong>
+                    </h5>
+                    <p>
+                      <strong>Tên lớp:</strong>{" "}
+                      {selectedClassDetails.class_name}
+                    </p>
+                    <p>
+                      <strong>Ngày bắt đầu:</strong>{" "}
+                      {formatDate(selectedClassDetails.start_date)}
+                    </p>
+                    <p>
+                      <strong>Ngày kết thúc:</strong>{" "}
+                      {formatDate(selectedClassDetails.end_date)}
+                    </p>
+                    <p>
+                      <strong>Thời gian:</strong>{" "}
+                      {selectedClassDetails.start_time} -{" "}
+                      {selectedClassDetails.end_time}
+                    </p>
                   </div>
+                )}
 
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="end_time" className="form-label">
-                      Thời gian kết thúc
-                    </label>
-                    <input
-                      type="time"
-                      className="form-control"
-                      id="end_time"
-                      name="end_time"
-                      value={newAssignment.end_time}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="btn btn-primary">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    !newAssignment.class_id || !selectedClassDetails || error
+                  }
+                >
                   Đăng ký
                 </button>
               </form>
@@ -196,55 +245,37 @@ function TeacherAssignments() {
           </div>
         </div>
 
-        <div className="col-md-7">
+        <div className="col-md-6">
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Lịch dạy đã đăng ký</h3>
+              <h3 className="card-title">
+                Lớp đã đăng ký (Môn: {newAssignment.subject || "Chưa chọn"})
+              </h3>
             </div>
             <div className="card-body">
-              {assignments.length === 0 ? (
-                <div className="alert alert-info">
-                  Chưa có lịch dạy nào được đăng ký
+              {registeredClasses.length === 0 ? (
+                <div className="alert alert-warning">
+                  Chưa có lớp nào được đăng ký cho môn này
                 </div>
               ) : (
-                <div className="table-responsive">
-                  <table className="table table-striped">
-                    <thead>
-                      <tr>
-                        <th>Lớp</th>
-                        <th>Môn học</th>
-                        <th>Ngày</th>
-                        <th>Giờ học</th>
-                        <th>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assignments.map((assignment) => (
-                        <tr key={assignment.id}>
-                          <td>{assignment.class_name}</td>
-                          <td>{assignment.subject}</td>
-                          <td>{formatDate(assignment.date)}</td>
-                          <td>
-                            {assignment.start_time} - {assignment.end_time}
-                          </td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                assignment.status === "completed"
-                                  ? "bg-success"
-                                  : "bg-warning"
-                              }`}
-                            >
-                              {assignment.status === "completed"
-                                ? "Đã hoàn thành"
-                                : "Đã lên lịch"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ul className="list-group">
+                  {registeredClasses.map((cls) => (
+                    <li key={cls.class_id} className="list-group-item">
+                      <strong>{cls.class_name}</strong>
+                      <br />
+                      <strong>Ngày bắt đầu:</strong>{" "}
+                      {formatDate(cls.start_date)}
+                      <br />
+                      <strong>Ngày kết thúc:</strong> {formatDate(cls.end_date)}
+                      <br />
+                      <strong>Thời gian:</strong> {cls.start_time} -{" "}
+                      {cls.end_time}
+                      <br />
+                      <strong>Giáo viên:</strong>{" "}
+                      {cls.teachers?.join(", ") || teacher.fullName}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
